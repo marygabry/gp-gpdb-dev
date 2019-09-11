@@ -23,22 +23,18 @@
 #include "catalog/indexing.h"
 #include "catalog/objectaddress.h"
 #include "catalog/pg_exttable.h"
-#include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
-#include "catalog/pg_type.h"
 #include "cdb/cdbcat.h"
 #include "cdb/cdbhash.h"
 #include "cdb/cdbrelsize.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"		/* Gp_role */
-#include "utils/array.h"
+#include "foreign/foreign.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/tqual.h"
 #include "utils/syscache.h"
-#include "utils/lsyscache.h"
 
 /*
  * The default numsegments when creating tables.  The value can be an integer
@@ -258,6 +254,8 @@ GpPolicyIsEntry(const GpPolicy *policy)
 	return policy->ptype == POLICYTYPE_ENTRY;
 }
 
+
+
 /*
  * GpPolicyFetch
  *
@@ -271,11 +269,29 @@ GpPolicyIsEntry(const GpPolicy *policy)
  * for any oid not found in gp_distribution_policy.
  */
 GpPolicy *
-GpPolicyFetch(Oid tbloid)
+GpPolicyFetchForCommandType(Oid tbloid, CmdType commandType)
 {
 	GpPolicy   *policy = NULL;	/* The result */
 	HeapTuple	gp_policy_tuple = NULL;
 
+	if (get_rel_relstorage(tbloid) == RELSTORAGE_FOREIGN)
+	{
+
+		ForeignTable *table = GetForeignTable(tbloid);
+
+		if (table->exec_location == FTEXECLOCATION_ALL_SEGMENTS &&
+			commandType != CMD_UPDATE &&
+			commandType != CMD_DELETE)
+		{
+			return createRandomPartitionedPolicy(getgpsegmentCount());
+		}
+		/*
+		 * 1. check mpp_execute
+		 * 2. check if we are writing
+		 * 3. creck that we are in INSERT ( not DELETE or UPDATE );
+		 */
+
+	}
 	/*
 	 * EXECUTE-type external tables have an "ON ..." specification, stored in
 	 * pg_exttable.location. See if it's "MASTER_ONLY". Other types of
@@ -411,6 +427,11 @@ GpPolicyFetch(Oid tbloid)
 	return policy;
 }								/* GpPolicyFetch */
 
+GpPolicy *
+GpPolicyFetch(Oid tbloid)
+{
+	return GpPolicyFetchForCommandType(tbloid, CMD_UNKNOWN);
+}
 /*
  * Sets the policy of a table into the gp_distribution_policy table
  * from a GpPolicy structure.

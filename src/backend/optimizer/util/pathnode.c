@@ -2910,19 +2910,27 @@ create_foreignscan_path(PlannerInfo *root, RelOptInfo *rel,
 	pathnode->path.total_cost = total_cost;
 	pathnode->path.pathkeys = pathkeys;
 
-	switch (rel->ftEntry->exec_location)
+	if (root->parse->commandType == CMD_UPDATE ||
+		root->parse->commandType == CMD_DELETE)
 	{
-		case FTEXECLOCATION_ANY:
-			CdbPathLocus_MakeGeneral(&(pathnode->path.locus), getgpsegmentCount());
-			break;
-		case FTEXECLOCATION_ALL_SEGMENTS:
-			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), getgpsegmentCount());
-			break;
-		case FTEXECLOCATION_MASTER:
-			CdbPathLocus_MakeEntry(&(pathnode->path.locus));
-			break;
-		default:
-			elog(ERROR, "unrecognized exec_location '%c'", rel->ftEntry->exec_location);
+		CdbPathLocus_MakeEntry(&(pathnode->path.locus));
+	}
+	else
+	{
+		switch (rel->ftEntry->exec_location)
+		{
+			case FTEXECLOCATION_ANY:
+				CdbPathLocus_MakeGeneral(&(pathnode->path.locus), getgpsegmentCount());
+				break;
+			case FTEXECLOCATION_ALL_SEGMENTS:
+				CdbPathLocus_MakeStrewn(&(pathnode->path.locus), getgpsegmentCount());
+				break;
+			case FTEXECLOCATION_MASTER:
+				CdbPathLocus_MakeEntry(&(pathnode->path.locus));
+				break;
+			default:
+				elog(ERROR, "unrecognized exec_location '%c'", rel->ftEntry->exec_location);
+		}
 	}
 
 	pathnode->fdw_private = fdw_private;

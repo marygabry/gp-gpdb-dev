@@ -388,9 +388,11 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 	{
 		GpPolicy   *targetPolicy;
 		bool		key_col_updated = false;
+		Oid tbloid = RelationGetRelid(rel);
 
 		/* Was any distribution key column among the changed columns? */
-		targetPolicy = GpPolicyFetch(RelationGetRelid(rel));
+		targetPolicy =
+			GpPolicyFetchForCommandType(RelationGetRelid(rel), CMD_UPDATE);
 		if (targetPolicy->ptype == POLICYTYPE_PARTITIONED)
 		{
 			int			i;

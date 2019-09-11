@@ -2300,6 +2300,12 @@ CheckValidResultRel(Relation resultRel, CmdType operation)
 						  (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 						errmsg("foreign table \"%s\" does not allow updates",
 							   RelationGetRelationName(resultRel))));
+//					ForeignTable *table = GetForeignTable(RelationGetRelid(resultRel));
+//					if (table->exec_location != FTEXECLOCATION_MASTER)
+//						ereport(ERROR,
+//					        (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+//						        errmsg("foreign table \"%s\" does not allow updates on segments or any",
+//						               RelationGetRelationName(resultRel))));
 					break;
 				case CMD_DELETE:
 					if (fdwroutine->ExecForeignDelete == NULL)
@@ -2313,6 +2319,12 @@ CheckValidResultRel(Relation resultRel, CmdType operation)
 						  (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 						errmsg("foreign table \"%s\" does not allow deletes",
 							   RelationGetRelationName(resultRel))));
+//					table= GetForeignTable(RelationGetRelid(resultRel));
+//					if (table->exec_location != FTEXECLOCATION_MASTER)
+//						ereport(ERROR,
+//						        (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+//							        errmsg("foreign table \"%s\" does not allow deletes on segments or any",
+//							               RelationGetRelationName(resultRel))));
 					break;
 				default:
 					elog(ERROR, "unrecognized CmdType: %d", (int) operation);
@@ -4825,7 +4837,7 @@ FillSliceTable_walker(Node *node, void *context)
 			Oid			reloid = getrelid(idx, stmt->rtable);
 			GpPolicyType policyType;
 
-			policyType = GpPolicyFetch(reloid)->ptype;
+			policyType = GpPolicyFetchForCommandType(reloid, mt->operation)->ptype;
 
 #ifdef USE_ASSERT_CHECKING
 			{
