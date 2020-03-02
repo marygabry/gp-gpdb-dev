@@ -128,7 +128,7 @@ determine_os() {
     echo "ubuntu"
     return
   fi
-  if grep -q ID=\"sles\" /etc/os-release ; then
+  if grep -q 'ID="sles"' /etc/os-release ; then
     echo "sles"
     return
   fi

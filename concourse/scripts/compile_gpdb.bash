@@ -40,7 +40,7 @@ function prep_env() {
     case "${TARGET_OS_VERSION}" in
     12) export BLD_ARCH=sles12_x86_64 ;;
     *)
-      echo "TARGET_OS_VERSION not set or recognized for Sles"
+      echo "TARGET_OS_VERSION not set or recognized for SLES"
       exit 1
       ;;
     esac
